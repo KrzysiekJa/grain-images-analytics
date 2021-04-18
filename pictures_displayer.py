@@ -86,9 +86,11 @@ class Ui_MainWindow(object):
         self.selected_data = pd.DataFrame(data=[], columns=['X', 'Y', 'Phase', 'grainId_5deg'])
     
     
+    
     def loadFun(self):
         try:
             imagePath, _ = QtWidgets.QFileDialog.getOpenFileName()
+            df = pd.DataFrame(data=[], columns=['X', 'Y', 'Phase', 'grainId_5deg'])
             df = pd.read_csv(imagePath,sep='\t')
         except OSError as err:
             self.labelForWarning.setText("OS error: {0}".format(err))
@@ -105,7 +107,7 @@ class Ui_MainWindow(object):
         
         image_matrix = self.make_image(int(df['X'].max() *10), int(df['Y'].max() *10), df['Phase'].to_numpy())
         
-        image  = Image.fromarray(np.uint8(cm.gist_earth(image_matrix) *255))
+        image  = Image.fromarray(np.uint8(cm.hsv(image_matrix) *255))
         pixmap = QtGui.QPixmap.fromImage(ImageQt(image))
         self.labelForPixmap.setPixmap(pixmap.scaled(self.labelForPixmap.size(), QtCore.Qt.KeepAspectRatio))
     
@@ -117,7 +119,7 @@ class Ui_MainWindow(object):
                                                             int(self.selected_data['Y'].max() *10), \
                                                             self.selected_data['Phase'].to_numpy(), phase)
         
-        image  = Image.fromarray(np.uint8(cm.gist_earth(image_matrix) *255))
+        image  = Image.fromarray(np.uint8(cm.gist_ncar(image_matrix) *255))
         pixmap = QtGui.QPixmap.fromImage(ImageQt(image))
         self.labelForPixmap.setPixmap(pixmap.scaled(self.labelForPixmap.size(), QtCore.Qt.KeepAspectRatio))
     
@@ -137,7 +139,7 @@ class Ui_MainWindow(object):
                                         self.selected_data['Phase'].to_numpy())
         image_matrix = self.display_grain_on_image(image_matrix, self.selected_data['grainId_5deg'].to_numpy(), grain)
         
-        image  = Image.fromarray(np.uint8(cm.gist_earth(image_matrix) *255))
+        image  = Image.fromarray(np.uint8(cm.gist_ncar(image_matrix) *255))
         pixmap = QtGui.QPixmap.fromImage(ImageQt(image))
         self.labelForPixmap.setPixmap(pixmap.scaled(self.labelForPixmap.size(), QtCore.Qt.KeepAspectRatio))
     
@@ -148,7 +150,7 @@ class Ui_MainWindow(object):
                                         self.selected_data['Phase'].to_numpy())
         image_matrix = self.image_color_segmentation(image_matrix, self.selected_data['grainId_5deg'].to_numpy())
         
-        image  = Image.fromarray(np.uint8(cm.gist_earth(image_matrix)))
+        image  = Image.fromarray(np.uint8(cm.gist_rainbow(image_matrix) *255))
         pixmap = QtGui.QPixmap.fromImage(ImageQt(image))
         self.labelForPixmap.setPixmap(pixmap.scaled(self.labelForPixmap.size(), QtCore.Qt.KeepAspectRatio))
     
@@ -194,18 +196,15 @@ class Ui_MainWindow(object):
     
     
     def image_color_segmentation(self, input_tab, grains):
-        output_tab = np.copy(input_tab)
+            output_tab = np.copy(input_tab)
         
-        grains = np.reshape(grains, (input_tab.shape[0]+1, input_tab.shape[1]+1))
-        
-        
-        #for x in range(input_tab.shape[0]):
-        #    for y in range(input_tab.shape[1]):
-        #        output_tab[x][y] = np.remainder(grains[x * (input_tab.shape[0]-1) + y], 255)
+            for x in range(input_tab.shape[0]):
+                for y in range(input_tab.shape[1]):
+                    output_tab[x][y] = np.remainder(grains[x * (input_tab.shape[0]-1) + y], 255)
                     
-        return np.remainder(grains, 255)
-    
-    
+            return output_tab / 255.
+
+
 
 
 

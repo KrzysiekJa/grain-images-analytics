@@ -105,7 +105,7 @@ class Ui_MainWindow(object):
         
         self.selected_data = df[['X', 'Y', 'Phase', 'grainId_5deg']]
         
-        image_matrix = self.make_image(int(df['X'].max() *10), int(df['Y'].max() *10), df['Phase'].to_numpy())
+        image_matrix = self.make_image(int(df['Y'].max() *10), int(df['X'].max() *10), df['Phase'].to_numpy())
         
         image  = Image.fromarray(np.uint8(cm.hsv(image_matrix) *255))
         pixmap = QtGui.QPixmap.fromImage(ImageQt(image))
@@ -115,8 +115,8 @@ class Ui_MainWindow(object):
     def comboBoxFun(self):
         phase = int(self.comboBox.currentText())
         
-        image_matrix = self.image_binarization_by_phase(int(self.selected_data['X'].max() *10), \
-                                                            int(self.selected_data['Y'].max() *10), \
+        image_matrix = self.image_binarization_by_phase(int(self.selected_data['Y'].max() *10), \
+                                                            int(self.selected_data['X'].max() *10), \
                                                             self.selected_data['Phase'].to_numpy(), phase)
         
         image  = Image.fromarray(np.uint8(cm.gist_ncar(image_matrix) *255))
@@ -134,8 +134,8 @@ class Ui_MainWindow(object):
             self.labelForWarning.setText("Wrong value- out of range.")
             return
         
-        image_matrix = self.make_image(int(self.selected_data['X'].max() *10), \
-                                        int(self.selected_data['Y'].max() *10), \
+        image_matrix = self.make_image(int(self.selected_data['Y'].max() *10), \
+                                        int(self.selected_data['X'].max() *10), \
                                         self.selected_data['Phase'].to_numpy())
         image_matrix = self.display_grain_on_image(image_matrix, self.selected_data['grainId_5deg'].to_numpy(), grain)
         
@@ -145,8 +145,8 @@ class Ui_MainWindow(object):
     
     
     def allGrainFun(self):
-        image_matrix = self.make_image(int(self.selected_data['X'].max() *10), \
-                                        int(self.selected_data['Y'].max() *10), \
+        image_matrix = self.make_image(int(self.selected_data['Y'].max() *10), \
+                                        int(self.selected_data['X'].max() *10), \
                                         self.selected_data['Phase'].to_numpy())
         image_matrix = self.image_color_segmentation(image_matrix, self.selected_data['grainId_5deg'].to_numpy())
         
@@ -160,49 +160,65 @@ class Ui_MainWindow(object):
         exit()
     
     
-    def make_image(self, x_range, y_range, values):
-        image_tab = np.zeros((x_range, y_range))
-        
-        for x in range(x_range):
-            for y in range(y_range):
-                image_tab[x][y] = values[x * (x_range-1) + y]
-                
+    def make_image(self, row_range, col_range, values):
+        image_tab = np.zeros((row_range+1, col_range+1))
+    
+        for i in range((row_range+1) * (col_range+1) - values.shape[0]):
+            values = np.concatenate((values, [values[-1]]))
+    
+    
+        for i in range(row_range+1):
+            for j in range(col_range+1):
+                image_tab[i][j] = values[i * (col_range+1) + j]
+    
         return image_tab / values.max() # normalization 0:1
     
     
     def display_grain_on_image(self, input_tab, grains, grain_number):
         output_tab = np.copy(input_tab)
+
+        for i in range((input_tab.shape[0]) * (input_tab.shape[1]) - grains.shape[0]):
+            grains = np.concatenate((grains, [grains[-1]]))
+
+        for i in range(input_tab.shape[0]):
+            for j in range(input_tab.shape[1]):
         
-        for x in range(input_tab.shape[0]):
-            for y in range(input_tab.shape[1]):
-            
-                if(grains[x * (input_tab.shape[0]-1) + y] == grain_number):
-                    output_tab[x][y] = 0
-                    
+                if(grains[i * input_tab.shape[1] + j] == grain_number):
+                    output_tab[i][j] = 0
+
         return output_tab
     
     
-    def image_binarization_by_phase(self, x_range, y_range, values, phase):
-        image_tab = np.zeros((x_range, y_range))
-        
-        for x in range(x_range):
-            for y in range(y_range):
-                if(values[x * (x_range-1) + y] == phase):
-                    image_tab[x][y] = 0.7
+    def image_binarization_by_phase(self, row_range, col_range, values, phase):
+        image_tab = np.zeros((row_range+1, col_range+1))
+    
+        for i in range((row_range+1) * (col_range+1) - values.shape[0]):
+            values = np.concatenate((values, [values[-1]]))
+    
+    
+        for i in range(row_range+1):
+            for j in range(col_range+1):
+            
+                if(values[i * (col_range+1) + j] == phase):
+                    image_tab[i][j] = 1
                 else:
-                    image_tab[x][y] = 0
-                    
+                    image_tab[i][j] = 0
+    
         return image_tab
     
     
     def image_color_segmentation(self, input_tab, grains):
-            output_tab = np.copy(input_tab)
-        
-            for x in range(input_tab.shape[0]):
-                for y in range(input_tab.shape[1]):
-                    output_tab[x][y] = np.remainder(grains[x * (input_tab.shape[0]-1) + y], 255)
-                    
-            return output_tab / 255.
+        output_tab = np.copy(input_tab)
+    
+        for i in range((input_tab.shape[0]+1) * (input_tab.shape[1]+1) - grains.shape[0]):
+            grains = np.concatenate((grains, [grains[-1]]))
+    
+    
+        for i in range(input_tab.shape[0]):
+            for j in range(input_tab.shape[1]):
+                output_tab[i][j] = np.remainder(grains[i * input_tab.shape[1] + j], 255)
+    
+        return output_tab / 255.
 
 
 
